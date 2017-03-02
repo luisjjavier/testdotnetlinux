@@ -1,5 +1,6 @@
 ﻿using dotnetcore2.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR.Infrastructure;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,10 +12,12 @@ namespace dotnetcore2.Controllers
     public class TodoController : Controller
     {
         private readonly ITodoRepository _todoRepository;
+        private readonly IConnectionManager _connectionManager;
 
-        public TodoController(ITodoRepository todoRepository)
+        public TodoController(ITodoRepository todoRepository, IConnectionManager connectionManager)
         {
             _todoRepository = todoRepository;
+            _connectionManager = connectionManager;
         }
 
         #region snippet_GetAll
@@ -45,6 +48,7 @@ namespace dotnetcore2.Controllers
             }
 
             _todoRepository.Add(item);
+            _connectionManager.GetHubContext<TodoHub>().Clients.All.publishTodo(item);
 
             return CreatedAtRoute("GetTodo", new { id = item.Key }, item);
         }

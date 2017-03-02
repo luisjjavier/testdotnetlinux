@@ -5,6 +5,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 using Swashbuckle.AspNetCore.Swagger;
 
 namespace dotnetcore2
@@ -29,6 +31,20 @@ namespace dotnetcore2
         {
             services.AddDbContext<TodoContext>(opt => opt.UseInMemoryDatabase());
 
+
+            var settings = new JsonSerializerSettings();
+            settings.ContractResolver = new SignalRContractResolver();
+
+            var serializer = JsonSerializer.Create(settings);
+            services.Add(new ServiceDescriptor(typeof(JsonSerializer),
+                         provider => serializer,
+                         ServiceLifetime.Transient));
+
+            services.AddSignalR(options =>
+            {
+                options.Hubs.EnableDetailedErrors = true;
+            });
+
             // Add framework services.
             services.AddMvc();
             services.AddSwaggerGen(c =>
@@ -37,7 +53,6 @@ namespace dotnetcore2
             }); ;
 
             services.AddSingleton<ITodoRepository, TodoRepository>();
-
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -46,6 +61,8 @@ namespace dotnetcore2
             loggerFactory.AddConsole(Configuration.GetSection("Logging"));
             loggerFactory.AddDebug();
 
+            app.UseStaticFiles();
+
             app.UseSwagger();
             app.UseSwaggerUI(c => {
                 c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1");
@@ -53,6 +70,8 @@ namespace dotnetcore2
     
 
             app.UseMvc();
+            app.UseWebSockets();
+            app.UseSignalR();
         }
     }
 }
